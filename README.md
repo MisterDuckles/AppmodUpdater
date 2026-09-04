@@ -3,7 +3,8 @@
 
 AppmodUpdater is a guided Windows installer and updater for Spotify and Spicetify. It can optionally install Spicetify Marketplace and Vencord for Discord.
 
-This project is based on [Spicetify-Autoupdater](https://github.com/itsgoog/Spicetify-Autoupdater) by its original authors and remains available under the GNU GPL v3.0. The original license and attribution are preserved in this repository.
+> [!NOTE]
+> This is a fork, not the original project. It is based on [Spicetify-Autoupdater](https://github.com/itsgoog/Spicetify-Autoupdater) by [itsgoog](https://github.com/itsgoog) and the original contributors. The original license and attribution are preserved in this repository, and this fork remains available under the GNU GPL v3.0.
 
 
 ### Script details:
@@ -16,10 +17,19 @@ This project is based on [Spicetify-Autoupdater](https://github.com/itsgoog/Spic
 
 ### How to use:
 
-1. Download or clone this repository to a permanent folder.
-2. Open PowerShell in that folder.
-3. Run `powershell.exe -ExecutionPolicy Bypass -File .\install.ps1`.
-4. Follow the prompts. Spotify is required; Spicetify, Marketplace, and Vencord are optional prompts.
+For the easiest setup, open PowerShell and run this one-liner:
+
+```powershell
+irm https://raw.githubusercontent.com/MisterDuckles/AppmodUpdater/main/bootstrap.ps1 | iex
+```
+
+It downloads the latest version to `%USERPROFILE%\AppmodUpdater` and starts the installer. Follow the prompts. Spotify is required; Spicetify, Marketplace, and Vencord are optional prompts.
+
+For a manual setup, download or clone this repository to a permanent folder and run:
+
+```powershell
+powershell.exe -ExecutionPolicy Bypass -File .\install.ps1
+```
 
 `start.vbs` runs the updater after Windows sign-in. You can also use the management commands below.
 
