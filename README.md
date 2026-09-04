@@ -3,6 +3,8 @@
 
 AppmodUpdater is a guided Windows installer and updater for Spotify and Spicetify. It can optionally install Spicetify Marketplace and Vencord for Discord.
 
+This project is based on [Spicetify-Autoupdater](https://github.com/itsgoog/Spicetify-Autoupdater) by its original authors and remains available under the GNU GPL v3.0. The original license and attribution are preserved in this repository.
+
 
 ### Script details:
 
