@@ -10,6 +10,13 @@
     powershell.exe -ExecutionPolicy Bypass -File install.ps1
 #>
 
+param(
+    [ValidateSet('install', 'status', 'run-now', 'uninstall')]
+    [string]$Action = 'install',
+    [ValidateRange(0, 3600)]
+    [int]$StartupDelaySeconds = 30
+)
+
 # Displays a banner, matching the style used in spicetify.ps1
 function Write-Sep {
     param(
@@ -29,8 +36,16 @@ function Test-SpotifyInstalled {
     return ($spotifyPaths | Where-Object { Test-Path $_ } | Select-Object -First 1)
 }
 
+function Get-SpicetifyExecutable {
+    $command = Get-Command spicetify -CommandType Application -ErrorAction SilentlyContinue
+    if ($command) { return $command.Source }
+    $localPath = Join-Path $env:LOCALAPPDATA 'spicetify\spicetify.exe'
+    if (Test-Path $localPath) { return $localPath }
+    return $null
+}
+
 function Ensure-Spicetify {
-    if (Get-Command spicetify -CommandType Application -ErrorAction SilentlyContinue) {
+    if (Get-SpicetifyExecutable) {
         Write-Host "[OK] Spicetify is already installed." -ForegroundColor Green
         return $true
     }
@@ -50,13 +65,97 @@ function Ensure-Spicetify {
         return $false
     }
 
-    if (-not (Get-Command spicetify -CommandType Application -ErrorAction SilentlyContinue)) {
+    if (-not (Get-SpicetifyExecutable)) {
         Write-Host "[ERROR] Spicetify was installed but is not available in PATH yet." -ForegroundColor Red
         return $false
     }
 
     Write-Host "[OK] Spicetify installed successfully." -ForegroundColor Green
     return $true
+}
+
+function Ensure-Marketplace {
+    $spicetifyPath = Get-SpicetifyExecutable
+    $marketplace = (& $spicetifyPath config custom_apps 2>$null | Out-String)
+    if ($marketplace -match 'marketplace') {
+        Write-Host "[OK] Spicetify Marketplace is already configured." -ForegroundColor Green
+        return $true
+    }
+
+    $response = Read-Host "Install Spicetify Marketplace? (Y/N)"
+    if ($response -notmatch '^[Yy]') {
+        Write-Host "[SKIPPED] Marketplace installation cancelled." -ForegroundColor Yellow
+        return $true
+    }
+
+    try {
+        Invoke-RestMethod 'https://raw.githubusercontent.com/spicetify/marketplace/main/resources/install.ps1' | Invoke-Expression
+        Write-Host "[OK] Spicetify Marketplace installed." -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[ERROR] Marketplace installation failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Ensure-Vencord {
+    $vencordPaths = @("$env:APPDATA\Vencord", "$env:LOCALAPPDATA\Vencord")
+    if ($vencordPaths | Where-Object { Test-Path $_ } | Select-Object -First 1) {
+        Write-Host "[OK] Vencord is already installed." -ForegroundColor Green
+        return $true
+    }
+
+    $response = Read-Host "Install Vencord for Discord? (Y/N)"
+    if ($response -notmatch '^[Yy]') {
+        Write-Host "[SKIPPED] Vencord installation cancelled." -ForegroundColor Yellow
+        return $true
+    }
+
+    try {
+        Invoke-RestMethod 'https://raw.githubusercontent.com/Vencord/Installer/main/install.ps1' | Invoke-Expression
+        Write-Host "[OK] Vencord installer completed." -ForegroundColor Green
+        return $true
+    } catch {
+        Write-Host "[ERROR] Vencord installation failed: $($_.Exception.Message)" -ForegroundColor Red
+        return $false
+    }
+}
+
+function Get-StartupPaths {
+    $startupPath = [System.Environment]::GetFolderPath('Startup')
+    return @{
+        Startup = $startupPath
+        Shortcut = Join-Path $startupPath 'SpicetifyAutoupdater.lnk'
+    }
+}
+
+function Show-Status {
+    $paths = Get-StartupPaths
+    $spotify = Test-SpotifyInstalled
+    $spicetify = Get-SpicetifyExecutable
+    [pscustomobject]@{
+        Spotify = if ($spotify) { 'Installed' } else { 'Missing' }
+        Spicetify = if ($spicetify) { 'Installed' } else { 'Missing' }
+        Autostart = if (Test-Path $paths.Shortcut) { 'Enabled' } else { 'Disabled' }
+        UpdaterPath = $PSScriptRoot
+        StartupDelaySeconds = $StartupDelaySeconds
+    } | Format-List
+}
+
+function Invoke-Now {
+    & powershell.exe -NoProfile -ExecutionPolicy Bypass -File (Join-Path $PSScriptRoot 'spicetify.ps1')
+    exit $LASTEXITCODE
+}
+
+function Uninstall-Autoupdater {
+    $paths = Get-StartupPaths
+    if (Test-Path $paths.Shortcut) {
+        Remove-Item $paths.Shortcut -Force
+        Write-Host "[OK] Startup shortcut removed." -ForegroundColor Green
+    } else {
+        Write-Host "[INFO] Startup shortcut was not installed." -ForegroundColor Cyan
+    }
+    Write-Host "Updater files were kept in $PSScriptRoot. Remove that folder manually if no longer needed."
 }
 
 function Install-AutoupdaterShortcut {
@@ -81,6 +180,12 @@ function Install-AutoupdaterShortcut {
         if (-not (Ensure-Spicetify)) {
             throw "Spicetify is required before the updater can be installed."
         }
+        if (-not (Ensure-Marketplace)) {
+            throw "Marketplace installation failed."
+        }
+        if (-not (Ensure-Vencord)) {
+            throw "Vencord installation failed."
+        }
 
         $StartupPath  = [System.Environment]::GetFolderPath('Startup')
         $VbsPath      = Join-Path $PSScriptRoot "start.vbs"
@@ -102,6 +207,7 @@ function Install-AutoupdaterShortcut {
             $Shortcut = $WScriptShell.CreateShortcut($ShortcutPath)
             $Shortcut.TargetPath       = $VbsPath
             $Shortcut.WorkingDirectory = $PSScriptRoot
+            $Shortcut.Arguments       = [string]$StartupDelaySeconds
             $Shortcut.Description      = "Automated Spicetify Updater"
 
             $Shortcut.Save()
@@ -124,9 +230,12 @@ function Install-AutoupdaterShortcut {
     }
 }
 
-Write-Sep "|*   Installing Spicetify Autoupdater   *|"
-Install-AutoupdaterShortcut
-
-# Keep the window open when double-clicked so the result can actually be read
-Write-Host ""
-Read-Host "Press Enter to close this window"
+switch ($Action) {
+    'status' { Show-Status }
+    'run-now' { Invoke-Now }
+    'uninstall' { Uninstall-Autoupdater }
+    'install' {
+        Write-Sep "|*   Installing AppmodUpdater   *|"
+        Install-AutoupdaterShortcut
+    }
+}

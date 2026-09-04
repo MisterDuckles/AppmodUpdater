@@ -4,8 +4,14 @@ Dim shell, powerShellPath, scriptPath, command, exitCode
 
 Set shell = CreateObject("WScript.Shell")
 
+delaySeconds = 30
+If WScript.Arguments.Count > 0 Then
+    If IsNumeric(WScript.Arguments(0)) Then delaySeconds = CInt(WScript.Arguments(0))
+End If
+WScript.Sleep delaySeconds * 1000
+
 powerShellPath = "powershell.exe"
-scriptPath = shell.CurrentDirectory & "\spicetify.ps1"
+scriptPath = CreateObject("Scripting.FileSystemObject").GetParentFolderName(WScript.ScriptFullName) & "\spicetify.ps1"
 command = powerShellPath & " -ExecutionPolicy Bypass -NoProfile -File """ & scriptPath & """"
 
 On Error Resume Next

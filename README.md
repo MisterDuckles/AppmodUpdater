@@ -1,12 +1,12 @@
-**Spicetify Autoupdater**
+# AppmodUpdater
 =======================================
 
-This updater is intended to automatically update [Spicetify](https://spicetify.app/) everytime you start your computer. It can also be used to update Spicetify as needed if you don't want it to run with every restart.
+AppmodUpdater is a guided Windows installer and updater for Spotify and Spicetify. It can optionally install Spicetify Marketplace and Vencord for Discord.
 
 
 ### Script details:
 
-`spicetify.ps1` checks for updates [`spicetify update --no-restart`] , restores the previous backup [`spicetify restore backup apply --no-restart`], and restarts the client (if running) [`spicetify restart`], and logs all actions into a simple log file.
+`spicetify.ps1` updates Spicetify, reapplies the configuration, and only restarts Spotify when it was already running. It waits 30 seconds after sign-in, prevents duplicate runs, and rotates `spicetify.log` above 1 MB.
 
 > [!NOTE]
 > A batch file (`update.bat`) is included in case anyone has issues with the powershell script but both function mostly identically.
@@ -14,24 +14,35 @@ This updater is intended to automatically update [Spicetify](https://spicetify.a
 
 ### How to use:
 
-1. Download latest release zip file
-2. Extract zip file wherever you choose
-3. Move new `Spicetify Autoupdater` folder wherever you want to save it permanently
-4. Run install.ps1 file.
-5. Enjoy <3
+1. Download or clone this repository to a permanent folder.
+2. Open PowerShell in that folder.
+3. Run `powershell.exe -ExecutionPolicy Bypass -File .\install.ps1`.
+4. Follow the prompts. Spotify is required; Spicetify, Marketplace, and Vencord are optional prompts.
 
-`start.vbs` will now be set to run everytime you start your computer. You can test the script by running `start.vbs` (just double click it) and checking the `spicetify.log` file to see the results. You can also run the `spicetify.ps1` script directly from the terminal.
+`start.vbs` runs the updater after Windows sign-in. You can also use the management commands below.
+
+```powershell
+.\install.ps1 -Action status
+.\install.ps1 -Action run-now
+.\install.ps1 -Action uninstall
+.\install.ps1 -StartupDelaySeconds 60
+```
+
+`status` reports the installation state. `run-now` starts an update immediately. `uninstall` removes the startup shortcut but keeps the repository files.
 
 > [!IMPORTANT]
 > PowerShell defaults to blocking scripts as a security measure so you may need to adjust your settings. This restriction can be bypassed using `powershell.exe -ExecutionPolicy Bypass -File spicetify.ps1`. Alternatively, you can disable the script protection altogether using `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy Unrestricted`.
 
 
-### Future plans:
+### Safety notes:
 
-- [X] Add additional functionality that will handle full instalation of necessary folders & shortcuts
+- Every optional installation asks for confirmation.
+- The updater stops on errors and does not restart Spotify when it was closed.
+- Review scripts before running them and prefer versioned releases over an unpinned branch.
 
 
 ### Links
 
 * [Spicetify](https://spicetify.app/)
 * [Spicetify Docs](https://spicetify.app/docs/getting-started "Getting Started")
+* [Vencord Installer](https://github.com/Vencord/Installer)
