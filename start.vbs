@@ -1,6 +1,6 @@
 Option Explicit
 
-Dim shell, powerShellPath, scriptPath, command, exitCode
+Dim shell, powerShellPath, scriptPath, command, exitCode, delaySeconds
 
 Set shell = CreateObject("WScript.Shell")
 
