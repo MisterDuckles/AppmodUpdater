@@ -9,7 +9,7 @@ if (-not $mutex.WaitOne(0)) {
 
 try {
     Set-Location $scriptRoot
-    if (Test-Path $logPath -PathType Leaf -and (Get-Item $logPath).Length -gt 1MB) {
+    if ((Test-Path $logPath -PathType Leaf) -and (Get-Item $logPath).Length -gt 1MB) {
         Move-Item $logPath "$logPath.1" -Force
     }
 
@@ -25,9 +25,10 @@ try {
     function Invoke-Spicetify {
         param([Parameter(Mandatory)][string[]]$Arguments)
         Write-LogMessage ("spicetify " + ($Arguments -join ' '))
-        & $spicetifyPath @Arguments 2>&1 | ForEach-Object { Write-LogMessage ([string]$_) }
-        if ($LASTEXITCODE -ne 0) {
-            throw "Spicetify failed with exit code $LASTEXITCODE."
+        & $spicetifyPath @Arguments
+        $exitCode = $LASTEXITCODE
+        if ($exitCode -ne 0) {
+            throw "Spicetify failed with exit code $exitCode."
         }
     }
 
@@ -42,8 +43,8 @@ try {
     $spotifyWasRunning = [bool](Get-Process -Name Spotify -ErrorAction SilentlyContinue)
     Write-LogMessage "Updating Spicetify"
     Invoke-Spicetify @('update', '--no-restart')
-    Write-LogMessage "Restoring Spicetify config"
-    Invoke-Spicetify @('restore', 'backup', 'apply', '--no-restart')
+    Write-LogMessage "Applying Spicetify config"
+    Invoke-Spicetify @('apply', '--no-restart')
 
     if ($spotifyWasRunning) {
         Write-LogMessage "Restarting Spotify"
